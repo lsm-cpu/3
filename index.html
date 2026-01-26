@@ -168,3 +168,390 @@
             <button class="btn" onclick="startGame('Advanced')" style="background-color: #ef5350;">Advanced (★★★)</button>
         </div>
     </div>
+
+    <div id="screen-game" class="hidden">
+        <div class="scoreboard">
+            <span>🗣️ Speaking: <span id="score-speak">0</span></span>
+            <span>🧩 Matching: <span id="score-match">0</span></span>
+            <span>Progress: <span id="progress-text">1/10</span></span>
+        </div>
+
+        <div id="task-speak">
+            <h2>Step 1: Listen & Read Aloud</h2>
+            <div id="word-syllables" class="word-display"></div>
+            
+            <div>
+                <button class="btn" onclick="playTTS()">🔊 Listen</button>
+            </div>
+            
+            <button class="btn btn-mic" id="mic-btn" onclick="activateMic()">🎤</button>
+            <div id="mic-status" style="margin-top: 10px; color: #78909c;">Tap microphone to start</div>
+            <div id="feedback-speak" class="feedback"></div>
+        </div>
+
+        <div id="task-match" class="hidden">
+            <h2>Step 2: Match Meaning</h2>
+            <div id="match-word-title" style="font-size: 2rem; font-weight: bold; color: var(--primary); margin: 20px 0;"></div>
+            <div id="options-container" class="options-grid"></div>
+            <div id="feedback-match" class="feedback"></div>
+        </div>
+    </div>
+
+    <div id="screen-result" class="hidden">
+        <h1>Daily Result</h1>
+        <h2>Total Score: <span id="final-score"></span> / 20</h2>
+        
+        <div class="results-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Word</th>
+                        <th>Speak</th>
+                        <th>Match</th>
+                    </tr>
+                </thead>
+                <tbody id="result-tbody"></tbody>
+            </table>
+        </div>
+
+        <button class="btn" onclick="exportCSV()">📥 Export CSV</button>
+        <button class="btn" onclick="location.reload()" style="background-color: #78909c;">New Student</button>
+    </div>
+</div>
+
+<script>
+    // --- Data Configuration ---
+    // Includes Syllable splits and Chinese/English meanings
+    const vocabDB = {
+        Core: [
+            { w: "housing cost", syl: ["hous", "ing", " ", "cost"], m: "住屋成本 (The price of rent or buying a home)" },
+            { w: "rent", syl: ["rent"], m: "租金 (Money paid to live in a flat)" },
+            { w: "struggle with", syl: ["strug", "gle", " ", "with"], m: "面對困難/掙扎 (To find something difficult)" },
+            { w: "salary", syl: ["sal", "a", "ry"], m: "薪金 (Monthly payment for work)" },
+            { w: "affordable", syl: ["af", "ford", "a", "ble"], m: "可負擔的 (Not too expensive)" },
+            { w: "cure", syl: ["cure"], m: "治癒 (To make someone healthy again)" },
+            { w: "suffer", syl: ["suf", "fer"], m: "受苦 (To feel pain or sadness)" },
+            { w: "single parents", syl: ["sin", "gle", " ", "par", "ents"], m: "單親家長 (Mother or father raising kids alone)" },
+            { w: "the homeless", syl: ["the", " ", "home", "less"], m: "無家可歸者 (People without a home)" },
+            { w: "the elderly", syl: ["the", " ", "eld", "er", "ly"], m: "長者 (Old people)" },
+            { w: "poverty", syl: ["pov", "er", "ty"], m: "貧窮 (Being very poor)" },
+            { w: "crime", syl: ["crime"], m: "罪案 (Illegal activities)" },
+            { w: "loneliness", syl: ["lone", "li", "ness"], m: "孤獨 (Feeling sad because you are alone)" },
+            { w: "social media addiction", syl: ["so", "cial", " ", "me", "dia", " ", "ad", "dic", "tion"], m: "社交媒體成癮 (Using social apps too much)" },
+            { w: "resolve", syl: ["re", "solve"], m: "解決 (To find a solution)" },
+            { w: "ignore", syl: ["ig", "nore"], m: "忽視 (To not pay attention to)" }
+        ],
+        Intermediate: [
+            { w: "economy", syl: ["e", "con", "o", "my"], m: "經濟 (System of money and goods)" },
+            { w: "government officials", syl: ["gov", "ern", "ment", " ", "of", "fi", "cials"], m: "政府官員 (People working in government)" },
+            { w: "nutritious food", syl: ["nu", "tri", "tious", " ", "food"], m: "有營養的食物 (Healthy food)" },
+            { w: "depressing", syl: ["de", "press", "ing"], m: "令人沮喪的 (Making you feel sad)" },
+            { w: "underweight", syl: ["un", "der", "weight"], m: "體重過輕 (Too thin)" },
+            { w: "low-paid", syl: ["low", "paid"], m: "低薪的 (Earning little money)" },
+            { w: "the disabled", syl: ["the", " ", "dis", "a", "bled"], m: "殘疾人士 (People with physical limits)" },
+            { w: "the unemployed", syl: ["the", " ", "un", "em", "ployed"], m: "失業人士 (People without jobs)" },
+            { w: "the uneducated", syl: ["the", " ", "un", "ed", "u", "ca", "ted"], m: "未受教育的人 (People with little schooling)" },
+            { w: "ageing population", syl: ["age", "ing", " ", "pop", "u", "la", "tion"], m: "人口老化 (More and more old people)" },
+            { w: "unemployment", syl: ["un", "em", "ploy", "ment"], m: "失業 (State of not having a job)" },
+            { w: "high healthcare cost", syl: ["high", " ", "health", "care", " ", "cost"], m: "高昂醫療費用 (Expensive medical bills)" },
+            { w: "drug abuse", syl: ["drug", " ", "a", "buse"], m: "濫用藥物 (Using drugs badly)" },
+            { w: "rectify", syl: ["rec", "ti", "fy"], m: "糾正 (To put right/correct)" }
+        ],
+        Advanced: [
+            { w: "welfare payment", syl: ["wel", "fare", " ", "pay", "ment"], m: "福利金 (Money from government for help)" },
+            { w: "subdivided flats", syl: ["sub", "di", "vid", "ed", " ", "flats"], m: "劏房 (Flat divided into small units)" },
+            { w: "infectious diseases", syl: ["in", "fec", "tious", " ", "dis", "eas", "es"], m: "傳染病 (Illness that spreads)" },
+            { w: "new immigrants", syl: ["new", " ", "im", "mi", "grants"], m: "新移民 (People recently moved here)" },
+            { w: "ethnic minorities", syl: ["eth", "nic", " ", "mi", "nor", "i", "ties"], m: "少數族裔 (Small racial/cultural groups)" },
+            { w: "isolation", syl: ["i", "so", "la", "tion"], m: "孤立 (Being separated from others)" },
+            { w: "gender inequality", syl: ["gen", "der", " ", "in", "e", "qual", "i", "ty"], m: "性別不平等 (Unfairness between men and women)" },
+            { w: "malnutrition", syl: ["mal", "nu", "tri", "tion"], m: "營養不良 (Not eating enough healthy food)" },
+            { w: "alleviate", syl: ["al", "le", "vi", "ate"], m: "緩和/減輕 (To make pain/problem less severe)" },
+            { w: "complicated", syl: ["com", "pli", "ca", "ted"], m: "複雜的 (Difficult to understand)" }
+        ]
+    };
+
+    // --- State Variables ---
+    let session = {
+        name: "", class: "", no: "", level: "",
+        playlist: [], currentIdx: 0,
+        results: [], // {word, speakScore, matchScore}
+        scoreSpeak: 0, scoreMatch: 0
+    };
+
+    let attempts = 0;
+    let recognition;
+    let isSpeaking = false;
+
+    // --- Initialization ---
+    function startGame(level) {
+        const name = document.getElementById('sName').value.trim();
+        const cls = document.getElementById('sClass').value.trim();
+        const no = document.getElementById('sNo').value.trim();
+
+        if (!name || !cls || !no) {
+            alert("Please fill in Name, Class, and Class No.");
+            return;
+        }
+
+        session.name = name;
+        session.class = cls;
+        session.no = no;
+        session.level = level;
+
+        // Randomly select 10 words from the chosen category
+        const allWords = vocabDB[level];
+        // Shuffle and slice
+        session.playlist = allWords
+            .map(value => ({ value, sort: Math.random() }))
+            .sort((a, b) => a.sort - b.sort)
+            .map(({ value }) => value)
+            .slice(0, 10);
+
+        document.getElementById('screen-login').classList.add('hidden');
+        document.getElementById('screen-game').classList.remove('hidden');
+
+        initSpeech();
+        loadLevel();
+    }
+
+    function initSpeech() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.toLowerCase();
+                checkPronunciation(transcript);
+            };
+
+            recognition.onerror = () => {
+                document.getElementById('mic-status').innerText = "❌ Error. Try again.";
+                document.getElementById('mic-btn').classList.remove('mic-listening');
+                isSpeaking = false;
+            };
+
+            recognition.onend = () => {
+                document.getElementById('mic-btn').classList.remove('mic-listening');
+                isSpeaking = false;
+            };
+        } else {
+            alert("This browser does not support Speech Recognition. Please use Chrome.");
+        }
+    }
+
+    // --- Game Logic ---
+    function loadLevel() {
+        if (session.currentIdx >= session.playlist.length) {
+            endGame();
+            return;
+        }
+
+        const currentData = session.playlist[session.currentIdx];
+        
+        // Update Stats
+        document.getElementById('score-speak').innerText = session.scoreSpeak;
+        document.getElementById('score-match').innerText = session.scoreMatch;
+        document.getElementById('progress-text').innerText = `${session.currentIdx + 1}/${session.playlist.length}`;
+
+        // Reset UI
+        document.getElementById('task-speak').classList.remove('hidden');
+        document.getElementById('task-match').classList.add('hidden');
+        document.getElementById('feedback-speak').innerText = "";
+        document.getElementById('mic-status').innerText = "Tap microphone to start";
+        
+        // Render Syllables
+        const sylDiv = document.getElementById('word-syllables');
+        sylDiv.innerHTML = "";
+        currentData.syl.forEach((s, i) => {
+            const span = document.createElement('span');
+            // Skip spaces for coloring logic
+            if(s.trim() === "") {
+                span.innerText = s;
+            } else {
+                span.innerText = s;
+                span.className = `syl-${(i % 5) + 1}`;
+            }
+            sylDiv.appendChild(span);
+        });
+
+        attempts = 0;
+    }
+
+    // --- Phase 1: Speaking ---
+    function playTTS() {
+        const word = session.playlist[session.currentIdx].w;
+        const u = new SpeechSynthesisUtterance(word);
+        u.rate = 0.85;
+        window.speechSynthesis.speak(u);
+    }
+
+    function activateMic() {
+        if (isSpeaking) return;
+        if (recognition) {
+            recognition.start();
+            isSpeaking = true;
+            document.getElementById('mic-btn').classList.add('mic-listening');
+            document.getElementById('mic-status').innerText = "Listening...";
+            document.getElementById('feedback-speak').innerText = "";
+        }
+    }
+
+    function checkPronunciation(spoken) {
+        const target = session.playlist[session.currentIdx].w.toLowerCase();
+        // Remove special chars for comparison
+        const cleanSpoken = spoken.replace(/[^a-z0-9 ]/g, "");
+        const cleanTarget = target.replace(/[^a-z0-9 ]/g, "");
+
+        if (cleanSpoken.includes(cleanTarget) || cleanTarget.includes(cleanSpoken)) {
+            // Success
+            document.getElementById('feedback-speak').innerText = `✅ Correct! "${spoken}"`;
+            document.getElementById('feedback-speak').style.color = "#388e3c";
+            session.scoreSpeak++;
+            session.results.push({ w: target, speak: 1, match: 0 }); // Init record
+            setTimeout(startMatchPhase, 1500);
+        } else {
+            // Fail
+            attempts++;
+            if (attempts < 2) {
+                document.getElementById('feedback-speak').innerText = `⚠️ Try again. You said: "${spoken}"`;
+                document.getElementById('feedback-speak').style.color = "#f57c00";
+            } else {
+                document.getElementById('feedback-speak').innerText = `❌ Moving on. Word was: "${target}"`;
+                document.getElementById('feedback-speak').style.color = "#d32f2f";
+                session.results.push({ w: target, speak: 0, match: 0 }); // Init record
+                setTimeout(startMatchPhase, 2000);
+            }
+        }
+    }
+
+    // --- Phase 2: Matching ---
+    function startMatchPhase() {
+        document.getElementById('task-speak').classList.add('hidden');
+        document.getElementById('task-match').classList.remove('hidden');
+        document.getElementById('feedback-match').innerText = "";
+        attempts = 0;
+
+        const correctObj = session.playlist[session.currentIdx];
+        document.getElementById('match-word-title').innerText = correctObj.w;
+
+        // Create options (Correct + 2 Distractors)
+        // Get distractors from ANY level to ensure difficulty
+        let pool = [...vocabDB.Core, ...vocabDB.Intermediate, ...vocabDB.Advanced];
+        pool = pool.filter(item => item.w !== correctObj.w).sort(() => 0.5 - Math.random());
+        
+        let options = [correctObj, pool[0], pool[1]];
+        options.sort(() => 0.5 - Math.random());
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = "";
+
+        options.forEach(opt => {
+            const btn = document.createElement('div');
+            btn.className = 'option-card';
+            btn.innerText = opt.m;
+            btn.onclick = () => checkMatch(btn, opt.w === correctObj.w);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkMatch(btn, isCorrect) {
+        // Prevent clicking if disabled
+        if (btn.style.opacity === "0.5") return;
+
+        if (isCorrect) {
+            btn.style.background = "#c8e6c9";
+            btn.style.borderColor = "#388e3c";
+            document.getElementById('feedback-match').innerText = "✅ Correct!";
+            document.getElementById('feedback-match').style.color = "#388e3c";
+            
+            // Update current record
+            let currentRes = session.results[session.results.length - 1];
+            currentRes.match = 1;
+            session.scoreMatch++;
+            
+            disableAllOptions();
+            setTimeout(nextWord, 1000);
+        } else {
+            attempts++;
+            btn.style.background = "#ffcdd2";
+            btn.style.opacity = "0.5"; // Visual disable
+            
+            if (attempts < 2) {
+                document.getElementById('feedback-match').innerText = "⚠️ Wrong meaning. Try again.";
+                document.getElementById('feedback-match').style.color = "#f57c00";
+            } else {
+                document.getElementById('feedback-match').innerText = "❌ No attempts left.";
+                document.getElementById('feedback-match').style.color = "#d32f2f";
+                // Reveal correct
+                disableAllOptions();
+                setTimeout(nextWord, 1500);
+            }
+        }
+    }
+
+    function disableAllOptions() {
+        const opts = document.querySelectorAll('.option-card');
+        opts.forEach(o => {
+            o.onclick = null;
+            if (o.style.background !== "rgb(200, 230, 201)") { // If not green
+                 o.style.opacity = "0.5";
+            }
+        });
+    }
+
+    function nextWord() {
+        session.currentIdx++;
+        loadLevel();
+    }
+
+    // --- End & Export ---
+    function endGame() {
+        document.getElementById('screen-game').classList.add('hidden');
+        document.getElementById('screen-result').classList.remove('hidden');
+
+        const total = session.scoreSpeak + session.scoreMatch;
+        document.getElementById('final-score').innerText = total;
+
+        const tbody = document.getElementById('result-tbody');
+        tbody.innerHTML = "";
+        session.results.forEach(r => {
+            const tr = `<tr>
+                <td>${r.w}</td>
+                <td>${r.speak ? '✅' : '❌'}</td>
+                <td>${r.match ? '✅' : '❌'}</td>
+            </tr>`;
+            tbody.innerHTML += tr;
+        });
+    }
+
+    function exportCSV() {
+        // BOM for Excel Chinese character support
+        let csv = "\uFEFF";
+        csv += "Student Name,Class,Class No,Date,Level,Word,Pronunciation (1/0),Matching (1/0),Total\n";
+        
+        const dateStr = new Date().toLocaleDateString();
+
+        session.results.forEach(r => {
+            csv += `"${session.name}","${session.class}","${session.no}","${dateStr}","${session.level}","${r.w}",${r.speak},${r.match},${r.speak + r.match}\n`;
+        });
+
+        // Summary Row
+        csv += `SUMMARY,${session.class},${session.no},${dateStr},${session.level},ALL,${session.scoreSpeak},${session.scoreMatch},${session.scoreSpeak + session.scoreMatch}\n`;
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${session.name}_Module4_Results.csv`;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+</body>
+</html>
