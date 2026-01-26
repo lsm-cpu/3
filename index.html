@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 4: Social Issues Challenge</title>
+    <style>
+        :root {
+            --primary: #5c6bc0; /* Indigo for a more academic/social issues feel */
+            --secondary: #26a69a; /* Teal */
+            --accent: #ff7043; /* Deep Orange */
+            --bg: #eceff1;
+            --card: #ffffff;
+            --text: #37474f;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        .container {
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 95%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h1 { color: var(--primary); margin-bottom: 0.5rem; }
+        p { color: #546e7a; margin-top: 0; }
+
+        /* Syllable Colors - Distinct for recognition */
+        .syl-1 { color: #d32f2f; } /* Red */
+        .syl-2 { color: #1976d2; } /* Blue */
+        .syl-3 { color: #388e3c; } /* Green */
+        .syl-4 { color: #e64a19; } /* Orange */
+        .syl-5 { color: #7b1fa2; } /* Purple */
+        
+        .word-display {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #f5f5f5;
+            border-radius: 12px;
+            border: 2px solid #cfd8dc;
+            letter-spacing: 1px;
+        }
+
+        /* Inputs & Buttons */
+        .input-group { margin: 15px 0; }
+        
+        input {
+            padding: 12px;
+            margin: 5px;
+            border: 1px solid #b0bec5;
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 200px;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 5px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); filter: brightness(1.1); }
+        .btn:disabled { background-color: #cfd8dc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-mic {
+            background-color: var(--accent);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .mic-listening { animation: pulse 1.5s infinite; background-color: #d32f2f; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(211, 47, 47, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+        }
+
+        /* Layout */
+        .hidden { display: none !important; }
+        
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            background: #e8eaf6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .option-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .option-card:hover { border-color: var(--primary); background: #e8eaf6; }
+
+        .feedback { min-height: 24px; font-weight: bold; margin-top: 15px; font-size: 1.1rem; }
+
+        /* Table */
+        .results-table-container { max-height: 300px; overflow-y: auto; margin: 20px 0; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background-color: var(--primary); color: white; position: sticky; top: 0; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="screen-login">
+        <h1>Module 4: Social Issues & Solutions</h1>
+        <p>Daily Vocab Challenge</p>
+        
+        <div class="input-group">
+            <input type="text" id="sName" placeholder="Full Name (e.g., Chan Tai Man)">
+            <br>
+            <input type="text" id="sClass" placeholder="Class (e.g., 4A)" style="width: 90px;">
+            <input type="number" id="sNo" placeholder="Class No." style="width: 90px;">
+        </div>
+
+        <h3>Select Your Level:</h3>
+        <div>
+            <button class="btn" onclick="startGame('Core')" style="background-color: #66bb6a;">Core (★)</button>
+            <button class="btn" onclick="startGame('Intermediate')" style="background-color: #ffa726;">Intermediate (★★)</button>
+            <button class="btn" onclick="startGame('Advanced')" style="background-color: #ef5350;">Advanced (★★★)</button>
+        </div>
+    </div>
